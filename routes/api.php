@@ -118,3 +118,11 @@ Route::get('/debug-db', function () {
         'DB_USERNAME' => env('DB_USERNAME'),
     ]);
 });
+
+Route::get('/debug-storage-files', function () {
+    return response()->json([
+        'logos' => Storage::disk('public')->files('logos'),
+        'certificates' => Storage::disk('public')->files('certificates'),
+        'supporting_documents' => Storage::disk('public')->files('supporting_documents'),
+    ]);
+});
