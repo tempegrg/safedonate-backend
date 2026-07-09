@@ -120,10 +120,10 @@ Route::get('/debug-db', function () {
     ]);
 });
 
-Route::get('/debug-storage-files', function () {
+Route::get('/debug-storage', function () {
     return response()->json([
-        'logos' => Storage::disk('public')->files('logos'),
-        'certificates' => Storage::disk('public')->files('certificates'),
-        'supporting_documents' => Storage::disk('public')->files('supporting_documents'),
+        'logos' => \Storage::disk('public')->files('logos'),
+        'certificates' => \Storage::disk('public')->files('certificates'),
+        'supporting_documents' => \Storage::disk('public')->files('supporting_documents'),
     ]);
 });
