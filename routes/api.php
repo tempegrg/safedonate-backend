@@ -58,6 +58,28 @@ Route::get(
     [OrganisationApplicationController::class, 'getUserApplications']
 );
 
+// =========================================
+// FILE VIEW ROUTES (ADD THESE BEFORE /{id})
+// =========================================
+
+// View logo
+Route::get(
+    '/organisation-applications/logo/{id}',
+    [OrganisationApplicationController::class, 'viewLogo']
+);
+
+// View certificate
+Route::get(
+    '/organisation-applications/certificate/{id}',
+    [OrganisationApplicationController::class, 'viewCertificate']
+);
+
+// View supporting document
+Route::get(
+    '/organisation-applications/supporting-document/{id}',
+    [OrganisationApplicationController::class, 'viewSupportingDocument']
+);
+
 // Get single application by ID
 Route::get(
     '/organisation-applications/{id}',

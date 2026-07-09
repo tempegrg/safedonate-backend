@@ -58,6 +58,8 @@ class OrganisationApplicationController extends Controller
 
         $application->load('user');
 
+        $application = $this->appendApplicationUrls($application);
+
         return response()->json([
             'message' => 'Application submitted successfully',
             'application' => $application,
@@ -73,22 +75,7 @@ class OrganisationApplicationController extends Controller
             ->latest()
             ->get()
             ->map(function ($application) {
-                $application->logo_url = $application->logo_path
-                    ? asset('storage/' . $application->logo_path)
-                    : null;
-
-                $application->certificate_url = $application->certificate_path
-                    ? asset('storage/' . $application->certificate_path)
-                    : null;
-
-                $application->supporting_document_url = $application->supporting_document_path
-                    ? asset('storage/' . $application->supporting_document_path)
-                    : null;
-
-                $application->submitted_by_name = $application->user?->name;
-                $application->submitted_by_email = $application->user?->email;
-
-                return $application;
+                return $this->appendApplicationUrls($application);
             });
 
         return response()->json([
@@ -103,20 +90,7 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::with('user')->findOrFail($id);
 
-        $application->logo_url = $application->logo_path
-            ? asset('storage/' . $application->logo_path)
-            : null;
-
-        $application->certificate_url = $application->certificate_path
-            ? asset('storage/' . $application->certificate_path)
-            : null;
-
-        $application->supporting_document_url = $application->supporting_document_path
-            ? asset('storage/' . $application->supporting_document_path)
-            : null;
-
-        $application->submitted_by_name = $application->user?->name;
-        $application->submitted_by_email = $application->user?->email;
+        $application = $this->appendApplicationUrls($application);
 
         return response()->json($application);
     }
@@ -127,7 +101,8 @@ class OrganisationApplicationController extends Controller
     public function getUserApplications($userId)
     {
         try {
-            $application = OrganisationApplication::where('user_id', $userId)
+            $application = OrganisationApplication::with('user')
+                ->where('user_id', $userId)
                 ->latest('created_at')
                 ->first();
 
@@ -137,17 +112,7 @@ class OrganisationApplicationController extends Controller
                 ], 200);
             }
 
-            $application->logo_url = $application->logo_path
-                ? asset('storage/' . $application->logo_path)
-                : null;
-
-            $application->certificate_url = $application->certificate_path
-                ? asset('storage/' . $application->certificate_path)
-                : null;
-
-            $application->supporting_document_url = $application->supporting_document_path
-                ? asset('storage/' . $application->supporting_document_path)
-                : null;
+            $application = $this->appendApplicationUrls($application);
 
             return response()->json([
                 'application' => $application
@@ -283,5 +248,88 @@ class OrganisationApplicationController extends Controller
         return response()->json([
             'message' => 'Application deleted successfully'
         ]);
+    }
+
+    // =========================================
+    // VIEW LOGO FILE
+    // =========================================
+    public function viewLogo($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (!$application->logo_path || !Storage::disk('public')->exists($application->logo_path)) {
+            return response()->json([
+                'message' => 'Logo not found'
+            ], 404);
+        }
+
+        return response()->file(
+            storage_path('app/public/' . $application->logo_path)
+        );
+    }
+
+    // =========================================
+    // VIEW CERTIFICATE FILE
+    // =========================================
+    public function viewCertificate($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (
+            !$application->certificate_path ||
+            !Storage::disk('public')->exists($application->certificate_path)
+        ) {
+            return response()->json([
+                'message' => 'Certificate not found'
+            ], 404);
+        }
+
+        return response()->file(
+            storage_path('app/public/' . $application->certificate_path)
+        );
+    }
+
+    // =========================================
+    // VIEW SUPPORTING DOCUMENT FILE
+    // =========================================
+    public function viewSupportingDocument($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (
+            !$application->supporting_document_path ||
+            !Storage::disk('public')->exists($application->supporting_document_path)
+        ) {
+            return response()->json([
+                'message' => 'Supporting document not found'
+            ], 404);
+        }
+
+        return response()->file(
+            storage_path('app/public/' . $application->supporting_document_path)
+        );
+    }
+
+    // =========================================
+    // APPEND FILE URLS
+    // =========================================
+    private function appendApplicationUrls($application)
+    {
+        $application->logo_url = $application->logo_path
+            ? url('/api/organisation-applications/logo/' . $application->id)
+            : null;
+
+        $application->certificate_url = $application->certificate_path
+            ? url('/api/organisation-applications/certificate/' . $application->id)
+            : null;
+
+        $application->supporting_document_url = $application->supporting_document_path
+            ? url('/api/organisation-applications/supporting-document/' . $application->id)
+            : null;
+
+        $application->submitted_by_name = $application->user?->name;
+        $application->submitted_by_email = $application->user?->email;
+
+        return $application;
     }
 }
