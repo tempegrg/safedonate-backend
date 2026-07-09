@@ -58,6 +58,18 @@ class OrganisationApplicationController extends Controller
 
         $application->load('user');
 
+        $application->logo_url = $application->logo_path
+            ? url('/api/organisation-applications/logo/' . $application->id)
+            : null;
+
+        $application->certificate_url = $application->certificate_path
+            ? url('/api/organisation-applications/certificate/' . $application->id)
+            : null;
+
+        $application->supporting_document_url = $application->supporting_document_path
+            ? url('/api/organisation-applications/supporting-document/' . $application->id)
+            : null;
+
         return response()->json([
             'message' => 'Application submitted successfully',
             'application' => $application,
@@ -168,13 +180,13 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::findOrFail($id);
 
-        if ($application->status === 'approved') {
+        if ($application->status === 'approved' || $application->status === 'verified') {
             return response()->json([
                 'message' => 'Application already approved'
             ]);
         }
 
-        $application->status = 'approved';
+        $application->status = 'verified';
         $application->admin_remark = null;
         $application->save();
 
@@ -241,17 +253,16 @@ class OrganisationApplicationController extends Controller
             'address' => 'required|string',
             'website' => 'required|string',
 
-            // optional files for update
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
         // =========================================
-        // REPLACE LOGO IF NEW ONE IS UPLOADED
+        // REPLACE LOGO
         // =========================================
         if ($request->hasFile('logo')) {
-            if ($application->logo_path) {
+            if ($application->logo_path && Storage::disk('public')->exists($application->logo_path)) {
                 Storage::disk('public')->delete($application->logo_path);
             }
 
@@ -259,10 +270,10 @@ class OrganisationApplicationController extends Controller
         }
 
         // =========================================
-        // REPLACE CERTIFICATE IF NEW ONE IS UPLOADED
+        // REPLACE CERTIFICATE
         // =========================================
         if ($request->hasFile('certificate')) {
-            if ($application->certificate_path) {
+            if ($application->certificate_path && Storage::disk('public')->exists($application->certificate_path)) {
                 Storage::disk('public')->delete($application->certificate_path);
             }
 
@@ -270,10 +281,10 @@ class OrganisationApplicationController extends Controller
         }
 
         // =========================================
-        // REPLACE SUPPORTING DOCUMENT IF NEW ONE IS UPLOADED
+        // REPLACE SUPPORTING DOCUMENT
         // =========================================
         if ($request->hasFile('supporting_document')) {
-            if ($application->supporting_document_path) {
+            if ($application->supporting_document_path && Storage::disk('public')->exists($application->supporting_document_path)) {
                 Storage::disk('public')->delete($application->supporting_document_path);
             }
 
@@ -294,17 +305,16 @@ class OrganisationApplicationController extends Controller
 
         $application->save();
 
-        // rebuild URLs for frontend
         $application->logo_url = $application->logo_path
-            ? url('/storage/' . $application->logo_path)
+            ? url('/api/organisation-applications/logo/' . $application->id)
             : null;
 
         $application->certificate_url = $application->certificate_path
-            ? url('/storage/' . $application->certificate_path)
+            ? url('/api/organisation-applications/certificate/' . $application->id)
             : null;
 
         $application->supporting_document_url = $application->supporting_document_path
-            ? url('/storage/' . $application->supporting_document_path)
+            ? url('/api/organisation-applications/supporting-document/' . $application->id)
             : null;
 
         return response()->json([
@@ -360,7 +370,6 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->logo_path);
-
         return response()->file($fullPath);
     }
 
@@ -385,7 +394,6 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->certificate_path);
-
         return response()->file($fullPath);
     }
 
@@ -410,7 +418,6 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->supporting_document_path);
-
         return response()->file($fullPath);
     }
 }
