@@ -46,16 +46,16 @@ Route::post(
     [OrganisationApplicationController::class, 'submit']
 );
 
-// Get all applications (admin side)
+// Get all applications (admin)
 Route::get(
     '/organisation-applications',
     [OrganisationApplicationController::class, 'index']
 );
 
-// Get latest application for specific user (My Application Status)
+// Get latest application by current user
 Route::get(
     '/organisation-applications/user/{userId}',
-    [OrganisationApplicationController::class, 'getUserApplication']
+    [OrganisationApplicationController::class, 'getUserApplications']
 );
 
 // Get single application by ID
