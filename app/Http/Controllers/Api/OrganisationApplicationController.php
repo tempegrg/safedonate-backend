@@ -126,31 +126,39 @@ class OrganisationApplicationController extends Controller
     // =========================================
     public function getUserApplications($userId)
     {
-        $application = OrganisationApplication::where('user_id', $userId)
-            ->latest()
-            ->first();
+        try {
+            $application = OrganisationApplication::where('user_id', $userId)
+                ->latest('created_at')
+                ->first();
 
-        if (!$application) {
+            if (!$application) {
+                return response()->json([
+                    'application' => null
+                ], 200);
+            }
+
+            $application->logo_url = $application->logo_path
+                ? asset('storage/' . $application->logo_path)
+                : null;
+
+            $application->certificate_url = $application->certificate_path
+                ? asset('storage/' . $application->certificate_path)
+                : null;
+
+            $application->supporting_document_url = $application->supporting_document_path
+                ? asset('storage/' . $application->supporting_document_path)
+                : null;
+
             return response()->json([
-                'application' => null
+                'application' => $application
             ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to fetch user application',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $application->logo_url = $application->logo_path
-            ? asset('storage/' . $application->logo_path)
-            : null;
-
-        $application->certificate_url = $application->certificate_path
-            ? asset('storage/' . $application->certificate_path)
-            : null;
-
-        $application->supporting_document_url = $application->supporting_document_path
-            ? asset('storage/' . $application->supporting_document_path)
-            : null;
-
-        return response()->json([
-            'application' => $application
-        ]);
     }
 
     // =========================================
