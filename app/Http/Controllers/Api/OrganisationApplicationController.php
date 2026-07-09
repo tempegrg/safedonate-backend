@@ -122,9 +122,9 @@ class OrganisationApplicationController extends Controller
     }
 
     // =========================================
-    // GET LATEST APPLICATION FOR CURRENT USER
+    // GET LATEST APPLICATION BY USER
     // =========================================
-    public function getUserApplication($userId)
+    public function getUserApplications($userId)
     {
         $application = OrganisationApplication::where('user_id', $userId)
             ->latest()
@@ -132,7 +132,6 @@ class OrganisationApplicationController extends Controller
 
         if (!$application) {
             return response()->json([
-                'message' => 'No application found',
                 'application' => null
             ], 200);
         }
