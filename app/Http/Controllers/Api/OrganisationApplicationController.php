@@ -1,362 +1,916 @@
-<?php
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-namespace App\Http\Controllers\Api;
+import '../../config/app_theme.dart';
+import '../../services/organisation_application_admin_service.dart';
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use App\Models\OrganisationApplication;
-use App\Models\Organisation;
+class OrganisationApplicationDetailPage extends StatefulWidget {
+  final int applicationId;
 
-class OrganisationApplicationController extends Controller
-{
-    // =========================================
-    // SUBMIT APPLICATION
-    // =========================================
-    public function submit(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'nullable|exists:users,id',
-            'organisation_name' => 'required|string|max:255',
-            'organisation_type' => 'required|string|max:255',
-            'registration_number' => 'required|string|max:255',
-            'description' => 'required|string',
-            'email' => 'required|email',
-            'phone' => 'required|string|max:30',
-            'address' => 'required|string',
-            'website' => 'required|string',
-            'logo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'certificate' => 'required|file|mimes:pdf,jpg,jpeg,png|max:4096',
-            'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
-        ]);
+  const OrganisationApplicationDetailPage({
+    super.key,
+    required this.applicationId,
+  });
 
-        $logoPath = $request->file('logo')->store('logos', 'public');
-        $certificatePath = $request->file('certificate')->store('certificates', 'public');
+  @override
+  State<OrganisationApplicationDetailPage> createState() =>
+      _OrganisationApplicationDetailPageState();
+}
 
-        $supportingDocumentPath = null;
-        if ($request->hasFile('supporting_document')) {
-            $supportingDocumentPath = $request->file('supporting_document')
-                ->store('supporting_documents', 'public');
-        }
+class _OrganisationApplicationDetailPageState
+    extends State<OrganisationApplicationDetailPage> {
+  bool isLoading = true;
+  Map<String, dynamic>? application;
 
-        $application = OrganisationApplication::create([
-            'user_id' => $request->user_id,
-            'organisation_name' => $request->organisation_name,
-            'organisation_type' => $request->organisation_type,
-            'registration_number' => $request->registration_number,
-            'description' => $request->description,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'website' => $request->website,
-            'logo_path' => $logoPath,
-            'certificate_path' => $certificatePath,
-            'supporting_document_path' => $supportingDocumentPath,
-            'status' => 'pending',
-            'admin_remark' => null,
-        ]);
+  @override
+  void initState() {
+    super.initState();
+    loadApplication();
+  }
 
-        $application->load('user');
+  Future<void> loadApplication() async {
+    final result =
+        await OrganisationApplicationAdminService.getApplication(
+      widget.applicationId,
+    );
 
-        return response()->json([
-            'message' => 'Application submitted successfully',
-            'application' => $application,
-        ], 201);
+    if (!mounted) return;
+
+    setState(() {
+      application = result;
+      isLoading = false;
+    });
+  }
+
+  // =========================================
+  // APPROVE
+  // =========================================
+  Future<void> approve() async {
+    final success =
+        await OrganisationApplicationAdminService.approve(
+      widget.applicationId,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Organisation approved successfully"),
+        ),
+      );
+      Navigator.pop(context, true);
+    }
+  }
+
+  // =========================================
+  // REJECT
+  // =========================================
+  Future<void> reject() async {
+    final reasonController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Reject Application"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Add rejection reason for the applicant (optional).",
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: "Enter rejection reason",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Reject"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != true) return;
+
+    final success =
+        await OrganisationApplicationAdminService.reject(
+      widget.applicationId,
+      adminRemark: reasonController.text.trim().isEmpty
+          ? null
+          : reasonController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Application rejected"),
+        ),
+      );
+      Navigator.pop(context, true);
+    }
+  }
+
+  // =========================================
+  // DELETE
+  // =========================================
+  Future<void> deleteApplication() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Application"),
+        content: const Text(
+          "Are you sure you want to delete this application?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final success =
+        await OrganisationApplicationAdminService.deleteApplication(
+      widget.applicationId,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Application deleted successfully"),
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to delete application"),
+        ),
+      );
+    }
+  }
+
+  // =========================================
+  // EDIT
+  // =========================================
+  Future<void> editApplication() async {
+    if (application == null) return;
+
+    final organisationNameController = TextEditingController(
+      text: application!['organisation_name']?.toString() ?? '',
+    );
+    final organisationTypeController = TextEditingController(
+      text: application!['organisation_type']?.toString() ?? '',
+    );
+    final registrationNumberController = TextEditingController(
+      text: application!['registration_number']?.toString() ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: application!['description']?.toString() ?? '',
+    );
+    final emailController = TextEditingController(
+      text: application!['email']?.toString() ?? '',
+    );
+    final phoneController = TextEditingController(
+      text: application!['phone']?.toString() ?? '',
+    );
+    final addressController = TextEditingController(
+      text: application!['address']?.toString() ?? '',
+    );
+    final websiteController = TextEditingController(
+      text: application!['website']?.toString() ?? '',
+    );
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Application"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                buildDialogField(
+                  controller: organisationNameController,
+                  label: "Organisation Name",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: organisationTypeController,
+                  label: "Organisation Type",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: registrationNumberController,
+                  label: "Registration Number",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: emailController,
+                  label: "Email",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: phoneController,
+                  label: "Phone",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: websiteController,
+                  label: "Website",
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: addressController,
+                  label: "Address",
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                buildDialogField(
+                  controller: descriptionController,
+                  label: "Description",
+                  maxLines: 4,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+
+    if (result != true) return;
+
+    final success =
+        await OrganisationApplicationAdminService.updateApplication(
+      id: widget.applicationId,
+      organisationName: organisationNameController.text.trim(),
+      organisationType: organisationTypeController.text.trim(),
+      registrationNumber: registrationNumberController.text.trim(),
+      description: descriptionController.text.trim(),
+      email: emailController.text.trim(),
+      phone: phoneController.text.trim(),
+      address: addressController.text.trim(),
+      website: websiteController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Application updated successfully"),
+        ),
+      );
+      await loadApplication();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to update application"),
+        ),
+      );
+    }
+  }
+
+  // =========================================
+  // OPEN DOCUMENT INSIDE APP
+  // =========================================
+  void openDocumentInApp({
+    required String title,
+    required String url,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InAppDocumentViewerPage(
+          title: title,
+          url: url,
+        ),
+      ),
+    );
+  }
+
+  // =========================================
+  // HELPERS
+  // =========================================
+  Widget buildDialogField({
+    required TextEditingController controller,
+    required String label,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Widget buildInfoTile(String title, dynamic value) {
+    final displayValue =
+        value?.toString().trim().isNotEmpty == true
+            ? value.toString()
+            : "-";
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 125,
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              displayValue,
+              style: const TextStyle(
+                fontSize: 14.5,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSectionCard({
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget buildDocumentTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String? url,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: iconColor,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: url != null && url.trim().isNotEmpty
+                ? () => openDocumentInApp(
+                      title: title,
+                      url: url,
+                    )
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text("View"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildLogo(dynamic logoUrl) {
+    if (logoUrl != null && logoUrl.toString().trim().isNotEmpty) {
+      return CircleAvatar(
+        radius: 52,
+        backgroundColor: Colors.white,
+        child: ClipOval(
+          child: Image.network(
+            logoUrl.toString(),
+            width: 104,
+            height: 104,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 104,
+                height: 104,
+                color: AppTheme.primaryColor.withOpacity(0.10),
+                child: const Icon(
+                  Icons.business,
+                  size: 44,
+                  color: AppTheme.primaryColor,
+                ),
+              );
+            },
+          ),
+        ),
+      );
     }
 
-    // =========================================
-    // GET ALL APPLICATIONS
-    // =========================================
-    public function index()
-    {
-        $applications = OrganisationApplication::with('user')
-            ->latest()
-            ->get()
-            ->map(function ($application) {
-                $application->logo_url = $application->logo_path
-                    ? url('/api/organisation-applications/logo/' . $application->id)
-                    : null;
+    return CircleAvatar(
+      radius: 52,
+      backgroundColor: AppTheme.primaryColor.withOpacity(0.10),
+      child: const Icon(
+        Icons.business,
+        size: 44,
+        color: AppTheme.primaryColor,
+      ),
+    );
+  }
 
-                $application->certificate_url = $application->certificate_path
-                    ? url('/api/organisation-applications/certificate/' . $application->id)
-                    : null;
+  Color getStatusBg(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange.shade100;
+      case 'approved':
+      case 'verified':
+        return Colors.green.shade100;
+      case 'rejected':
+        return Colors.red.shade100;
+      default:
+        return Colors.grey.shade200;
+    }
+  }
 
-                $application->supporting_document_url = $application->supporting_document_path
-                    ? url('/api/organisation-applications/supporting-document/' . $application->id)
-                    : null;
+  Color getStatusTextColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'approved':
+      case 'verified':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
-                $application->submitted_by_name = $application->user?->name;
-                $application->submitted_by_email = $application->user?->email;
+  ButtonStyle actionButtonStyle({
+    required Color backgroundColor,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(0, 54),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    );
+  }
 
-                return $application;
-            });
-
-        return response()->json([
-            'applications' => $applications
-        ]);
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
-    // =========================================
-    // GET SINGLE APPLICATION
-    // =========================================
-    public function show($id)
-    {
-        $application = OrganisationApplication::with('user')->findOrFail($id);
-
-        $application->logo_url = $application->logo_path
-            ? url('/api/organisation-applications/logo/' . $application->id)
-            : null;
-
-        $application->certificate_url = $application->certificate_path
-            ? url('/api/organisation-applications/certificate/' . $application->id)
-            : null;
-
-        $application->supporting_document_url = $application->supporting_document_path
-            ? url('/api/organisation-applications/supporting-document/' . $application->id)
-            : null;
-
-        $application->submitted_by_name = $application->user?->name;
-        $application->submitted_by_email = $application->user?->email;
-
-        return response()->json($application);
+    if (application == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(
+          child: Text("Application not found"),
+        ),
+      );
     }
 
-    // =========================================
-    // GET LATEST APPLICATION BY USER
-    // =========================================
-    public function getUserApplications($userId)
-    {
-        try {
-            $application = OrganisationApplication::where('user_id', $userId)
-                ->latest('created_at')
-                ->first();
+    final status =
+        (application!['status'] ?? 'pending').toString();
+    final isPending = status.toLowerCase() == 'pending';
 
-            if (!$application) {
-                return response()->json([
-                    'application' => null
-                ], 200);
+    final logoUrl = application!['logo_url'];
+    final applicantName =
+        application!['submitted_by_name'] ?? "Unknown";
+    final applicantEmail =
+        application!['submitted_by_email'] ?? "No email";
+    final adminRemark = application!['admin_remark'];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryColor,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Application Details",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            onPressed: editApplication,
+            icon: const Icon(
+              Icons.edit,
+              color: Colors.white,
+            ),
+          ),
+          IconButton(
+            onPressed: deleteApplication,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // HEADER CARD
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor,
+                    Color(0xFF9A1F42),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  buildLogo(logoUrl),
+                  const SizedBox(height: 16),
+                  Text(
+                    (application!['organisation_name'] ?? "-")
+                        .toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (application!['organisation_type'] ?? "-")
+                        .toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: getStatusBg(status),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: getStatusTextColor(status),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            buildSectionCard(
+              title: "Applicant Information",
+              child: Column(
+                children: [
+                  buildInfoTile("Submitted By", applicantName),
+                  buildInfoTile("Applicant Email", applicantEmail),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            buildSectionCard(
+              title: "Organisation Information",
+              child: Column(
+                children: [
+                  buildInfoTile(
+                    "Registration No",
+                    application!['registration_number'],
+                  ),
+                  buildInfoTile("Email", application!['email']),
+                  buildInfoTile("Phone", application!['phone']),
+                  buildInfoTile("Website", application!['website']),
+                  buildInfoTile("Address", application!['address']),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            buildSectionCard(
+              title: "Organisation Description",
+              child: Text(
+                (application!['description'] ?? "-").toString(),
+                style: const TextStyle(
+                  fontSize: 15,
+                  height: 1.6,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            buildSectionCard(
+              title: "Uploaded Documents",
+              child: Column(
+                children: [
+                  buildDocumentTile(
+                    icon: Icons.picture_as_pdf,
+                    iconColor: Colors.red,
+                    title: "Registration Certificate",
+                    url: application!['certificate_url']?.toString(),
+                  ),
+                  if (application!['supporting_document_url'] != null)
+                    buildDocumentTile(
+                      icon: Icons.description,
+                      iconColor: AppTheme.primaryColor,
+                      title: "Supporting Document",
+                      url: application!['supporting_document_url']
+                          ?.toString(),
+                    ),
+                ],
+              ),
+            ),
+
+            if (status.toLowerCase() == 'rejected' &&
+                adminRemark != null &&
+                adminRemark.toString().trim().isNotEmpty) ...[
+              const SizedBox(height: 18),
+              buildSectionCard(
+                title: "Rejection Reason",
+                child: Text(
+                  adminRemark.toString(),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.6,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            if (isPending)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: reject,
+                      style: actionButtonStyle(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text(
+                        "Reject",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: approve,
+                      style: actionButtonStyle(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text(
+                        "Approve",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================
+// IN-APP DOCUMENT VIEWER
+// =========================================
+class InAppDocumentViewerPage extends StatefulWidget {
+  final String title;
+  final String url;
+
+  const InAppDocumentViewerPage({
+    super.key,
+    required this.title,
+    required this.url,
+  });
+
+  @override
+  State<InAppDocumentViewerPage> createState() =>
+      _InAppDocumentViewerPageState();
+}
+
+class _InAppDocumentViewerPageState
+    extends State<InAppDocumentViewerPage> {
+  late final WebViewController controller;
+  bool isPageLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (_) {
+            if (mounted) {
+              setState(() {
+                isPageLoading = true;
+              });
             }
+          },
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() {
+                isPageLoading = false;
+              });
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
 
-            $application->logo_url = $application->logo_path
-                ? url('/api/organisation-applications/logo/' . $application->id)
-                : null;
-
-            $application->certificate_url = $application->certificate_path
-                ? url('/api/organisation-applications/certificate/' . $application->id)
-                : null;
-
-            $application->supporting_document_url = $application->supporting_document_path
-                ? url('/api/organisation-applications/supporting-document/' . $application->id)
-                : null;
-
-            return response()->json([
-                'application' => $application
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to fetch user application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // =========================================
-    // APPROVE APPLICATION
-    // =========================================
-    public function approve($id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        if ($application->status === 'approved') {
-            return response()->json([
-                'message' => 'Application already approved'
-            ]);
-        }
-
-        $application->status = 'approved';
-        $application->admin_remark = null;
-        $application->save();
-
-        $existingOrganisation = Organisation::where(
-            'registration_no',
-            $application->registration_number
-        )->first();
-
-        if (!$existingOrganisation) {
-            Organisation::create([
-                'name' => $application->organisation_name,
-                'registration_no' => $application->registration_number,
-                'website' => $application->website,
-                'category' => $application->organisation_type,
-                'status' => 'verified',
-                'logo' => $application->logo_path,
-                'description' => $application->description,
-                'email' => $application->email,
-                'phone' => $application->phone,
-                'address' => $application->address,
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Application approved successfully'
-        ]);
-    }
-
-    // =========================================
-    // REJECT APPLICATION
-    // =========================================
-    public function reject(Request $request, $id)
-    {
-        $request->validate([
-            'admin_remark' => 'nullable|string|max:1000',
-        ]);
-
-        $application = OrganisationApplication::findOrFail($id);
-
-        $application->status = 'rejected';
-        $application->admin_remark = $request->admin_remark;
-        $application->save();
-
-        return response()->json([
-            'message' => 'Application rejected successfully',
-            'application' => $application
-        ]);
-    }
-
-    // =========================================
-    // UPDATE APPLICATION
-    // =========================================
-    public function update(Request $request, $id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        $request->validate([
-            'organisation_name' => 'required|string|max:255',
-            'organisation_type' => 'required|string|max:255',
-            'registration_number' => 'required|string|max:255',
-            'description' => 'required|string',
-            'email' => 'required|email',
-            'phone' => 'required|string|max:30',
-            'address' => 'required|string',
-            'website' => 'required|string',
-        ]);
-
-        $application->update([
-            'organisation_name' => $request->organisation_name,
-            'organisation_type' => $request->organisation_type,
-            'registration_number' => $request->registration_number,
-            'description' => $request->description,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'website' => $request->website,
-        ]);
-
-        return response()->json([
-            'message' => 'Application updated successfully',
-            'application' => $application
-        ]);
-    }
-
-    // =========================================
-    // DELETE APPLICATION
-    // =========================================
-    public function destroy($id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        if ($application->logo_path && Storage::disk('public')->exists($application->logo_path)) {
-            Storage::disk('public')->delete($application->logo_path);
-        }
-
-        if ($application->certificate_path && Storage::disk('public')->exists($application->certificate_path)) {
-            Storage::disk('public')->delete($application->certificate_path);
-        }
-
-        if ($application->supporting_document_path && Storage::disk('public')->exists($application->supporting_document_path)) {
-            Storage::disk('public')->delete($application->supporting_document_path);
-        }
-
-        $application->delete();
-
-        return response()->json([
-            'message' => 'Application deleted successfully'
-        ]);
-    }
-
-    // =========================================
-    // VIEW LOGO
-    // =========================================
-    public function viewLogo($id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        if (!$application->logo_path) {
-            return response()->json([
-                'message' => 'Logo path is empty'
-            ], 404);
-        }
-
-        if (!Storage::disk('public')->exists($application->logo_path)) {
-            return response()->json([
-                'message' => 'Logo file not found',
-                'logo_path' => $application->logo_path,
-            ], 404);
-        }
-
-        $fullPath = Storage::disk('public')->path($application->logo_path);
-
-        return response()->file($fullPath);
-    }
-
-    // =========================================
-    // VIEW CERTIFICATE
-    // =========================================
-    public function viewCertificate($id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        if (!$application->certificate_path) {
-            return response()->json([
-                'message' => 'Certificate path is empty'
-            ], 404);
-        }
-
-        if (!Storage::disk('public')->exists($application->certificate_path)) {
-            return response()->json([
-                'message' => 'Certificate file not found',
-                'certificate_path' => $application->certificate_path,
-            ], 404);
-        }
-
-        $fullPath = Storage::disk('public')->path($application->certificate_path);
-
-        return response()->file($fullPath);
-    }
-
-    // =========================================
-    // VIEW SUPPORTING DOCUMENT
-    // =========================================
-    public function viewSupportingDocument($id)
-    {
-        $application = OrganisationApplication::findOrFail($id);
-
-        if (!$application->supporting_document_path) {
-            return response()->json([
-                'message' => 'Supporting document path is empty'
-            ], 404);
-        }
-
-        if (!Storage::disk('public')->exists($application->supporting_document_path)) {
-            return response()->json([
-                'message' => 'Supporting document file not found',
-                'supporting_document_path' => $application->supporting_document_path,
-            ], 404);
-        }
-
-        $fullPath = Storage::disk('public')->path($application->supporting_document_path);
-
-        return response()->file($fullPath);
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        backgroundColor: AppTheme.primaryColor,
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: controller),
+          if (isPageLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
+    );
+  }
 }

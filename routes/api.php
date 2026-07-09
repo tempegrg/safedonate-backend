@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\OrganisationController;
 use App\Http\Controllers\Api\User\DonationController;
 use App\Http\Controllers\Api\Admin\ReportController;
 use App\Http\Controllers\Api\OrganisationApplicationController;
+use Illuminate\Support\Facades\Storage;
 
 // =========================================
 // AUTH
