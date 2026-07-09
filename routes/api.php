@@ -89,6 +89,24 @@ Route::delete(
 );
 
 // =========================================
+// ORGANISATION APPLICATION FILE VIEW ROUTES
+// =========================================
+Route::get(
+    '/organisation-applications/logo/{id}',
+    [OrganisationApplicationController::class, 'viewLogo']
+);
+
+Route::get(
+    '/organisation-applications/certificate/{id}',
+    [OrganisationApplicationController::class, 'viewCertificate']
+);
+
+Route::get(
+    '/organisation-applications/supporting-document/{id}',
+    [OrganisationApplicationController::class, 'viewSupportingDocument']
+);
+
+// =========================================
 // DEBUG DB
 // =========================================
 Route::get('/debug-db', function () {

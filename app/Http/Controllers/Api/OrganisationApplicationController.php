@@ -74,15 +74,15 @@ class OrganisationApplicationController extends Controller
             ->get()
             ->map(function ($application) {
                 $application->logo_url = $application->logo_path
-                    ? asset('storage/' . $application->logo_path)
+                    ? url('/api/organisation-applications/logo/' . $application->id)
                     : null;
 
                 $application->certificate_url = $application->certificate_path
-                    ? asset('storage/' . $application->certificate_path)
+                    ? url('/api/organisation-applications/certificate/' . $application->id)
                     : null;
 
                 $application->supporting_document_url = $application->supporting_document_path
-                    ? asset('storage/' . $application->supporting_document_path)
+                    ? url('/api/organisation-applications/supporting-document/' . $application->id)
                     : null;
 
                 $application->submitted_by_name = $application->user?->name;
@@ -104,15 +104,15 @@ class OrganisationApplicationController extends Controller
         $application = OrganisationApplication::with('user')->findOrFail($id);
 
         $application->logo_url = $application->logo_path
-            ? asset('storage/' . $application->logo_path)
+            ? url('/api/organisation-applications/logo/' . $application->id)
             : null;
 
         $application->certificate_url = $application->certificate_path
-            ? asset('storage/' . $application->certificate_path)
+            ? url('/api/organisation-applications/certificate/' . $application->id)
             : null;
 
         $application->supporting_document_url = $application->supporting_document_path
-            ? asset('storage/' . $application->supporting_document_path)
+            ? url('/api/organisation-applications/supporting-document/' . $application->id)
             : null;
 
         $application->submitted_by_name = $application->user?->name;
@@ -138,15 +138,15 @@ class OrganisationApplicationController extends Controller
             }
 
             $application->logo_url = $application->logo_path
-                ? asset('storage/' . $application->logo_path)
+                ? url('/api/organisation-applications/logo/' . $application->id)
                 : null;
 
             $application->certificate_url = $application->certificate_path
-                ? asset('storage/' . $application->certificate_path)
+                ? url('/api/organisation-applications/certificate/' . $application->id)
                 : null;
 
             $application->supporting_document_url = $application->supporting_document_path
-                ? asset('storage/' . $application->supporting_document_path)
+                ? url('/api/organisation-applications/supporting-document/' . $application->id)
                 : null;
 
             return response()->json([
@@ -283,5 +283,65 @@ class OrganisationApplicationController extends Controller
         return response()->json([
             'message' => 'Application deleted successfully'
         ]);
+    }
+
+    // =========================================
+    // VIEW LOGO
+    // =========================================
+    public function viewLogo($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (
+            !$application->logo_path ||
+            !Storage::disk('public')->exists($application->logo_path)
+        ) {
+            return response()->json([
+                'message' => 'Logo not found'
+            ], 404);
+        }
+
+        $path = storage_path('app/public/' . $application->logo_path);
+        return response()->file($path);
+    }
+
+    // =========================================
+    // VIEW CERTIFICATE
+    // =========================================
+    public function viewCertificate($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (
+            !$application->certificate_path ||
+            !Storage::disk('public')->exists($application->certificate_path)
+        ) {
+            return response()->json([
+                'message' => 'Certificate not found'
+            ], 404);
+        }
+
+        $path = storage_path('app/public/' . $application->certificate_path);
+        return response()->file($path);
+    }
+
+    // =========================================
+    // VIEW SUPPORTING DOCUMENT
+    // =========================================
+    public function viewSupportingDocument($id)
+    {
+        $application = OrganisationApplication::findOrFail($id);
+
+        if (
+            !$application->supporting_document_path ||
+            !Storage::disk('public')->exists($application->supporting_document_path)
+        ) {
+            return response()->json([
+                'message' => 'Supporting document not found'
+            ], 404);
+        }
+
+        $path = storage_path('app/public/' . $application->supporting_document_path);
+        return response()->file($path);
     }
 }
