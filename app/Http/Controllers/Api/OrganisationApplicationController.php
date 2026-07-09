@@ -240,18 +240,72 @@ class OrganisationApplicationController extends Controller
             'phone' => 'required|string|max:30',
             'address' => 'required|string',
             'website' => 'required|string',
+
+            // optional files for update
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
+            'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
-        $application->update([
-            'organisation_name' => $request->organisation_name,
-            'organisation_type' => $request->organisation_type,
-            'registration_number' => $request->registration_number,
-            'description' => $request->description,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'website' => $request->website,
-        ]);
+        // =========================================
+        // REPLACE LOGO IF NEW ONE IS UPLOADED
+        // =========================================
+        if ($request->hasFile('logo')) {
+            if ($application->logo_path) {
+                Storage::disk('public')->delete($application->logo_path);
+            }
+
+            $application->logo_path = $request->file('logo')->store('logos', 'public');
+        }
+
+        // =========================================
+        // REPLACE CERTIFICATE IF NEW ONE IS UPLOADED
+        // =========================================
+        if ($request->hasFile('certificate')) {
+            if ($application->certificate_path) {
+                Storage::disk('public')->delete($application->certificate_path);
+            }
+
+            $application->certificate_path = $request->file('certificate')->store('certificates', 'public');
+        }
+
+        // =========================================
+        // REPLACE SUPPORTING DOCUMENT IF NEW ONE IS UPLOADED
+        // =========================================
+        if ($request->hasFile('supporting_document')) {
+            if ($application->supporting_document_path) {
+                Storage::disk('public')->delete($application->supporting_document_path);
+            }
+
+            $application->supporting_document_path = $request->file('supporting_document')->store('supporting_documents', 'public');
+        }
+
+        // =========================================
+        // UPDATE TEXT FIELDS
+        // =========================================
+        $application->organisation_name = $request->organisation_name;
+        $application->organisation_type = $request->organisation_type;
+        $application->registration_number = $request->registration_number;
+        $application->description = $request->description;
+        $application->email = $request->email;
+        $application->phone = $request->phone;
+        $application->address = $request->address;
+        $application->website = $request->website;
+
+        $application->save();
+
+        // rebuild URLs for frontend
+        $application->logo_url = $application->logo_path
+            ? url('/storage/' . $application->logo_path)
+            : null;
+
+        $application->certificate_url = $application->certificate_path
+            ? url('/storage/' . $application->certificate_path)
+            : null;
+
+        $application->supporting_document_url = $application->supporting_document_path
+            ? url('/storage/' . $application->supporting_document_path)
+            : null;
 
         return response()->json([
             'message' => 'Application updated successfully',
