@@ -10,77 +10,87 @@ use App\Http\Controllers\Api\OrganisationApplicationController;
 // =========================================
 // AUTH
 // =========================================
-
 Route::post('/register', [UserAuthController::class, 'register']);
 Route::post('/login', [UserAuthController::class, 'login']);
 
 // =========================================
 // VERIFIED ORGANISATIONS
 // =========================================
-
 Route::get('/organisations', [OrganisationController::class, 'index']);
 Route::post('/organisations', [OrganisationController::class, 'store']);
-
-Route::delete(
-    '/organisations/{id}',
-    [OrganisationController::class, 'destroy']
-);
+Route::delete('/organisations/{id}', [OrganisationController::class, 'destroy']);
 
 // =========================================
 // VERIFY DONATION LINK
 // =========================================
-
 Route::post('/verify-link', [DonationController::class, 'verifyLink']);
 
 // =========================================
 // VERIFICATION LOGS
 // =========================================
-
 Route::get('/logs', [DonationController::class, 'logs']);
-
-Route::delete(
-    '/logs/{id}',
-    [DonationController::class, 'deleteLog']
-);
+Route::delete('/logs/{id}', [DonationController::class, 'deleteLog']);
 
 // =========================================
 // REPORTS
 // =========================================
-
-Route::get(
-    '/reports',
-    [ReportController::class, 'index']
-);
+Route::get('/reports', [ReportController::class, 'index']);
 
 // =========================================
 // ORGANISATION APPLICATIONS
 // =========================================
 
+// Submit new application
 Route::post(
     '/organisation-applications',
     [OrganisationApplicationController::class, 'submit']
 );
 
+// Get all applications (admin side)
 Route::get(
     '/organisation-applications',
     [OrganisationApplicationController::class, 'index']
 );
 
+// Get latest application for specific user (My Application Status)
+Route::get(
+    '/organisation-applications/user/{userId}',
+    [OrganisationApplicationController::class, 'getUserApplication']
+);
+
+// Get single application by ID
 Route::get(
     '/organisation-applications/{id}',
     [OrganisationApplicationController::class, 'show']
 );
 
+// Approve application
 Route::put(
     '/organisation-applications/{id}/approve',
     [OrganisationApplicationController::class, 'approve']
 );
 
+// Reject application
 Route::put(
     '/organisation-applications/{id}/reject',
     [OrganisationApplicationController::class, 'reject']
 );
 
+// Update application
+Route::put(
+    '/organisation-applications/{id}',
+    [OrganisationApplicationController::class, 'update']
+);
+
+// Delete application
+Route::delete(
+    '/organisation-applications/{id}',
+    [OrganisationApplicationController::class, 'destroy']
+);
+
+// =========================================
+// DEBUG DB
+// =========================================
 Route::get('/debug-db', function () {
     return response()->json([
         'DB_CONNECTION' => env('DB_CONNECTION'),
