@@ -30,6 +30,7 @@ class OrganisationApplicationController extends Controller
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
+        // Save to public disk
         $logoPath = $request->file('logo')->store('logos', 'public');
         $certificatePath = $request->file('certificate')->store('certificates', 'public');
 
@@ -267,15 +268,24 @@ class OrganisationApplicationController extends Controller
         $application = OrganisationApplication::findOrFail($id);
 
         if ($application->logo_path) {
-            Storage::disk('public')->delete($application->logo_path);
+            $logoFile = public_path('storage/' . $application->logo_path);
+            if (file_exists($logoFile)) {
+                unlink($logoFile);
+            }
         }
 
         if ($application->certificate_path) {
-            Storage::disk('public')->delete($application->certificate_path);
+            $certificateFile = public_path('storage/' . $application->certificate_path);
+            if (file_exists($certificateFile)) {
+                unlink($certificateFile);
+            }
         }
 
         if ($application->supporting_document_path) {
-            Storage::disk('public')->delete($application->supporting_document_path);
+            $supportingFile = public_path('storage/' . $application->supporting_document_path);
+            if (file_exists($supportingFile)) {
+                unlink($supportingFile);
+            }
         }
 
         $application->delete();
@@ -292,16 +302,22 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::findOrFail($id);
 
-        if (
-            !$application->logo_path ||
-            !Storage::disk('public')->exists($application->logo_path)
-        ) {
+        if (!$application->logo_path) {
             return response()->json([
-                'message' => 'Logo not found'
+                'message' => 'Logo path is empty'
             ], 404);
         }
 
-        $path = storage_path('app/public/' . $application->logo_path);
+        $path = public_path('storage/' . $application->logo_path);
+
+        if (!file_exists($path)) {
+            return response()->json([
+                'message' => 'Logo file not found',
+                'path_checked' => $path,
+                'logo_path' => $application->logo_path,
+            ], 404);
+        }
+
         return response()->file($path);
     }
 
@@ -312,16 +328,22 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::findOrFail($id);
 
-        if (
-            !$application->certificate_path ||
-            !Storage::disk('public')->exists($application->certificate_path)
-        ) {
+        if (!$application->certificate_path) {
             return response()->json([
-                'message' => 'Certificate not found'
+                'message' => 'Certificate path is empty'
             ], 404);
         }
 
-        $path = storage_path('app/public/' . $application->certificate_path);
+        $path = public_path('storage/' . $application->certificate_path);
+
+        if (!file_exists($path)) {
+            return response()->json([
+                'message' => 'Certificate file not found',
+                'path_checked' => $path,
+                'certificate_path' => $application->certificate_path,
+            ], 404);
+        }
+
         return response()->file($path);
     }
 
@@ -332,16 +354,22 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::findOrFail($id);
 
-        if (
-            !$application->supporting_document_path ||
-            !Storage::disk('public')->exists($application->supporting_document_path)
-        ) {
+        if (!$application->supporting_document_path) {
             return response()->json([
-                'message' => 'Supporting document not found'
+                'message' => 'Supporting document path is empty'
             ], 404);
         }
 
-        $path = storage_path('app/public/' . $application->supporting_document_path);
+        $path = public_path('storage/' . $application->supporting_document_path);
+
+        if (!file_exists($path)) {
+            return response()->json([
+                'message' => 'Supporting document file not found',
+                'path_checked' => $path,
+                'supporting_document_path' => $application->supporting_document_path,
+            ], 404);
+        }
+
         return response()->file($path);
     }
 }
