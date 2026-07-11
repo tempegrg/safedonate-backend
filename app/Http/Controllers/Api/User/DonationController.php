@@ -95,13 +95,29 @@ class DonationController extends Controller
                     $suspicious = $stats['suspicious'] ?? 0;
 
                     // =========================================
-                    // DETECT THREATS
+                    // DETECT THREATS USING VIRUSTOTAL RESULTS
                     // =========================================
+
+                    // Dangerous:
+                    // Three or more security vendors classify the website as malicious.
                     if ($malicious >= 3) {
+
                         $securityStatus = 'malicious';
-                    } elseif ($malicious > 0 || $suspicious > 0) {
+
+                    // Warning:
+                    // One or two malicious detections OR
+                    // at least one suspicious detection.
+                    } elseif (
+                        ($malicious >= 1 && $malicious <= 2) ||
+                        ($suspicious >= 1)
+                    ) {
+
                         $securityStatus = 'warning';
+
+                    // Safe:
+                    // No malicious or suspicious detections.
                     } else {
+
                         $securityStatus = 'trusted';
                     }
                 } else {
@@ -116,11 +132,44 @@ class DonationController extends Controller
         }
 
         // =========================================
+        // DETERMINE RESULT FOR REPORT
+        // =========================================
+        $logResult = 'unknown';
+
+        if ($organisation) {
+
+            // Website belongs to a trusted organisation
+            $logResult = 'verified';
+
+        } else {
+
+            switch ($securityStatus) {
+
+                case 'trusted':
+                    // Safe according to VirusTotal, but not a trusted organisation
+                    $logResult = 'unknown';
+                    break;
+
+                case 'warning':
+                    $logResult = 'warning';
+                    break;
+
+                case 'malicious':
+                    $logResult = 'danger';
+                    break;
+
+                default:
+                    $logResult = 'unknown';
+                    break;
+            }
+        }
+
+        // =========================================
         // SAVE VERIFICATION LOG
         // =========================================
         VerificationLog::create([
             'website' => $website,
-            'result' => $organisation ? 'verified' : 'unknown',
+            'result' => $logResult,
         ]);
 
         // =========================================

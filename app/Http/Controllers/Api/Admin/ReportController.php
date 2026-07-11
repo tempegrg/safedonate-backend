@@ -12,32 +12,51 @@ class ReportController extends Controller
     // =========================================
     // GET DASHBOARD REPORTS
     // =========================================
-
     public function index()
     {
         return response()->json([
 
-            // Total organisations
-            'total_organisations' =>
-                Organisation::count(),
+            // =========================================
+            // ORGANISATIONS
+            // =========================================
+            'total_organisations' => Organisation::count(),
 
-            // Total verification logs
-            'total_logs' =>
-                VerificationLog::count(),
+            // =========================================
+            // TOTAL VERIFICATION LOGS
+            // =========================================
+            'total_logs' => VerificationLog::count(),
 
-            // Verified websites
-            'verified_logs' =>
-                VerificationLog::where(
-                    'result',
-                    'verified'
-                )->count(),
+            // =========================================
+            // VERIFIED ORGANISATIONS
+            // =========================================
+            'verified_logs' => VerificationLog::where(
+                'result',
+                'verified'
+            )->count(),
 
-            // Warning websites
-            'warning_logs' =>
-                VerificationLog::where(
-                    'result',
-                    'warning'
-                )->count(),
+            // =========================================
+            // WARNING WEBSITES
+            // =========================================
+            'warning_logs' => VerificationLog::where(
+                'result',
+                'warning'
+            )->count(),
+
+            // =========================================
+            // DANGEROUS WEBSITES
+            // =========================================
+            'danger_logs' => VerificationLog::where(
+                'result',
+                'danger'
+            )->count(),
+
+            // =========================================
+            // UNKNOWN WEBSITES
+            // =========================================
+            'unknown_logs' => VerificationLog::where(
+                'result',
+                'unknown'
+            )->count(),
         ]);
     }
 }
