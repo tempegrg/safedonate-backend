@@ -181,39 +181,40 @@ class OrganisationApplicationController extends Controller
     {
         $application = OrganisationApplication::findOrFail($id);
 
-        if ($application->status === 'approved' || $application->status === 'verified') {
+        if ($application->status === 'verified') {
             return response()->json([
                 'message' => 'Application already approved'
-            ]);
+            ], 200);
         }
 
+        // Update application status
         $application->status = 'verified';
         $application->admin_remark = null;
         $application->save();
 
-        $existingOrganisation = Organisation::where(
-            'registration_no',
-            $application->registration_number
-        )->first();
-
-        if (!$existingOrganisation) {
-            Organisation::create([
+        // Create or update trusted organisation
+        Organisation::updateOrCreate(
+            [
+                'registration_no' => $application->registration_number,
+            ],
+            [
                 'name' => $application->organisation_name,
                 'registration_no' => $application->registration_number,
                 'website' => $application->website,
                 'category' => $application->organisation_type,
-                'status' => 'verified',
-                'logo' => $application->logo_path,
                 'description' => $application->description,
                 'email' => $application->email,
                 'phone' => $application->phone,
                 'address' => $application->address,
-            ]);
-        }
+                'logo' => $application->logo_path,
+                'status' => 'verified',
+            ]
+        );
 
         return response()->json([
-            'message' => 'Application approved successfully'
-        ]);
+            'message' => 'Application approved successfully',
+            'application' => $application,
+        ], 200);
     }
 
     // =========================================
@@ -230,6 +231,31 @@ class OrganisationApplicationController extends Controller
         $application->status = 'rejected';
         $application->admin_remark = $request->admin_remark;
         $application->save();
+
+        if ($application->status == 'verified') {
+
+            Organisation::where(
+                'registration_no',
+                $application->registration_number
+            )->update([
+
+                'name' => $application->organisation_name,
+                'website' => $application->website,
+                'category' => $application->organisation_type,
+                'description' => $application->description,
+                'email' => $application->email,
+                'phone' => $application->phone,
+                'address' => $application->address,
+                'logo' => $application->logo_path,
+                'status' => 'verified',
+
+            ]);
+        }
+
+        Organisation::where(
+            'registration_no',
+            $application->registration_number
+        )->delete();
 
         return response()->json([
             'message' => 'Application rejected successfully',
@@ -305,6 +331,26 @@ class OrganisationApplicationController extends Controller
         $application->website = $request->website;
 
         $application->save();
+
+        if ($application->status == 'verified') {
+
+            Organisation::where(
+                'registration_no',
+                $application->registration_number
+            )->update([
+
+                'name' => $application->organisation_name,
+                'website' => $application->website,
+                'category' => $application->organisation_type,
+                'description' => $application->description,
+                'email' => $application->email,
+                'phone' => $application->phone,
+                'address' => $application->address,
+                'logo' => $application->logo_path,
+                'status' => 'verified',
+
+            ]);
+        }
 
         $application->logo_url = $application->logo_path
             ? url('/api/organisation-applications/logo/' . $application->id)

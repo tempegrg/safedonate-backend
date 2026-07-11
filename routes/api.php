@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\User\DonationController;
 use App\Http\Controllers\Api\Admin\ReportController;
 use App\Http\Controllers\Api\OrganisationApplicationController;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Organisation;
+use App\Models\OrganisationApplication;
 
 // =========================================
 // AUTH
@@ -125,5 +127,35 @@ Route::get('/debug-storage', function () {
         'logos' => \Storage::disk('public')->files('logos'),
         'certificates' => \Storage::disk('public')->files('certificates'),
         'supporting_documents' => \Storage::disk('public')->files('supporting_documents'),
+    ]);
+});
+
+Route::get('/sync-organisations', function () {
+
+    // Clear the organisations table
+    Organisation::truncate();
+
+    // Rebuild it from all verified applications
+    $applications = OrganisationApplication::where('status', 'verified')->get();
+
+    foreach ($applications as $application) {
+
+        Organisation::create([
+            'name' => $application->organisation_name,
+            'registration_no' => $application->registration_number,
+            'website' => $application->website,
+            'category' => $application->organisation_type,
+            'description' => $application->description,
+            'email' => $application->email,
+            'phone' => $application->phone,
+            'address' => $application->address,
+            'logo' => $application->logo_path,
+            'status' => 'verified',
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Organisation table synchronized successfully.',
+        'total' => $applications->count(),
     ]);
 });
