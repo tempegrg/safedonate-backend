@@ -136,7 +136,7 @@ class DonationController extends Controller
                 return response()->json([
                     'status' => 'verified',
                     'security_status' => 'safe',
-                    'message' => 'Trusted organisation and website is safe',
+                    'message' => 'Trusted organisation and website is safe.',
                     'organisation' => $organisation->name
                 ]);
             }
@@ -145,7 +145,7 @@ class DonationController extends Controller
                 return response()->json([
                     'status' => 'verified',
                     'security_status' => 'warning',
-                    'message' => 'Trusted organisation found, but some security warnings were detected',
+                    'message' => 'Trusted organisation found, but some security warnings were detected.',
                     'organisation' => $organisation->name
                 ]);
             }
@@ -154,7 +154,7 @@ class DonationController extends Controller
                 return response()->json([
                     'status' => 'verified',
                     'security_status' => 'danger',
-                    'message' => 'Trusted organisation found, but security risks were detected on the website',
+                    'message' => 'Trusted organisation found, but security risks were detected on the website.',
                     'organisation' => $organisation->name
                 ]);
             }
@@ -163,7 +163,7 @@ class DonationController extends Controller
             return response()->json([
                 'status' => 'verified',
                 'security_status' => 'unknown',
-                'message' => 'Trusted organisation found, but the website security scan could not be completed',
+                'message' => 'Trusted organisation found. However, VirusTotal does not currently have sufficient reputation information for this website.',
                 'organisation' => $organisation->name
             ]);
         }
@@ -200,7 +200,7 @@ class DonationController extends Controller
         return response()->json([
             'status' => 'unknown',
             'security_status' => 'unknown',
-            'message' => 'Website is not registered in trusted database and the security scan could not be completed',
+            'message' => 'Website is not registered as a trusted organisation. VirusTotal does not currently have sufficient reputation information for this website. Proceed with caution before making any donation.',
         ]);
     }
 
