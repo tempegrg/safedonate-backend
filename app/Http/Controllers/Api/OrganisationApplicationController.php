@@ -329,25 +329,39 @@ class OrganisationApplicationController extends Controller
     // =========================================
     public function destroy($id)
     {
-        $application = OrganisationApplication::findOrFail($id);
+        $application = OrganisationApplication::find($id);
 
-        if ($application->logo_path && Storage::disk('public')->exists($application->logo_path)) {
+        if (!$application) {
+            return response()->json([
+                'message' => 'Application not found.'
+            ], 404);
+        }
+
+        // Delete corresponding trusted organisation
+        Organisation::where(
+            'registration_no',
+            $application->registration_number
+        )->delete();
+
+        // Delete uploaded files
+        if ($application->logo_path) {
             Storage::disk('public')->delete($application->logo_path);
         }
 
-        if ($application->certificate_path && Storage::disk('public')->exists($application->certificate_path)) {
+        if ($application->certificate_path) {
             Storage::disk('public')->delete($application->certificate_path);
         }
 
-        if ($application->supporting_document_path && Storage::disk('public')->exists($application->supporting_document_path)) {
+        if ($application->supporting_document_path) {
             Storage::disk('public')->delete($application->supporting_document_path);
         }
 
+        // Delete application
         $application->delete();
 
         return response()->json([
-            'message' => 'Application deleted successfully'
-        ]);
+            'message' => 'Application and organisation deleted successfully.'
+        ], 200);
     }
 
     // =========================================
