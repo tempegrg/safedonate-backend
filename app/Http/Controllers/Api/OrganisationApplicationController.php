@@ -27,10 +27,10 @@ class OrganisationApplicationController extends Controller
             'website' => 'required|string',
             'logo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'certificate' => 'required|file|mimes:pdf,jpg,jpeg,png|max:4096',
-            'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
-        dd($request->all(), $request->file('supporting_document'));
+  
         $logoPath = $request->file('logo')->store('logos', 'public');
         $certificatePath = $request->file('certificate')->store('certificates', 'public');
 
