@@ -30,6 +30,7 @@ class OrganisationApplicationController extends Controller
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
+        dd($request->all(), $request->file('supporting_document'));
         $logoPath = $request->file('logo')->store('logos', 'public');
         $certificatePath = $request->file('certificate')->store('certificates', 'public');
 
