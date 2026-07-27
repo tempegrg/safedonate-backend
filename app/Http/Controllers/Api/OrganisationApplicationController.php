@@ -431,7 +431,10 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->logo_path);
-        return response()->file($fullPath);
+        return response()->file($fullPath, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        ]);
     }
 
     // =========================================
@@ -455,7 +458,10 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->certificate_path);
-        return response()->file($fullPath);
+        return response()->file($fullPath, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        ]);
     }
 
     // =========================================
@@ -479,6 +485,9 @@ class OrganisationApplicationController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($application->supporting_document_path);
-        return response()->file($fullPath);
+        return response()->file($fullPath, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        ]);
     }
 }

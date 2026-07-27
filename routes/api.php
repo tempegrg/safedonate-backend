@@ -110,6 +110,26 @@ Route::get(
 );
 
 // =========================================
+// CORS IMAGE PROXY
+// =========================================
+Route::get('/image', function (\Illuminate\Http\Request $request) {
+    $path = $request->query('path');
+    if (!$path) return abort(404);
+    
+    // Validate path to prevent directory traversal
+    $path = str_replace(['..', '\\'], '', $path);
+    $file = storage_path('app/public/' . $path);
+    
+    if (file_exists($file)) {
+        return response()->file($file, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        ]);
+    }
+    abort(404);
+});
+
+// =========================================
 // DEBUG DB
 // =========================================
 Route::get('/debug-db', function () {
