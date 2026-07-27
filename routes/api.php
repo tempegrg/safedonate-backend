@@ -94,17 +94,17 @@ Route::delete(
 // =========================================
 // ORGANISATION APPLICATION FILE VIEW ROUTES
 // =========================================
-Route::get(
+Route::any(
     '/organisation-applications/logo/{id}',
     [OrganisationApplicationController::class, 'viewLogo']
 );
 
-Route::get(
+Route::any(
     '/organisation-applications/certificate/{id}',
     [OrganisationApplicationController::class, 'viewCertificate']
 );
 
-Route::get(
+Route::any(
     '/organisation-applications/supporting-document/{id}',
     [OrganisationApplicationController::class, 'viewSupportingDocument']
 );
@@ -112,7 +112,7 @@ Route::get(
 // =========================================
 // CORS IMAGE PROXY
 // =========================================
-Route::get('/image', function (\Illuminate\Http\Request $request) {
+Route::any('/image', function (\Illuminate\Http\Request $request) {
     $path = $request->query('path');
     if (!$path) return abort(404);
     

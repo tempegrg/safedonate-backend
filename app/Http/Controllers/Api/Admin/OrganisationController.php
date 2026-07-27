@@ -18,7 +18,7 @@ class OrganisationController extends Controller
             ->get()
             ->map(function ($organisation) {
                 $organisation->logo_url = $organisation->logo
-                    ? url('/api/image?path=' . $organisation->logo)
+                    ? secure_url('/api/image?path=' . $organisation->logo)
                     : null;
 
                 return $organisation;
@@ -60,7 +60,7 @@ class OrganisationController extends Controller
         ]);
 
         $organisation->logo_url = $organisation->logo
-            ? url('/api/image?path=' . $organisation->logo)
+            ? secure_url('/api/image?path=' . $organisation->logo)
             : null;
 
         return response()->json([

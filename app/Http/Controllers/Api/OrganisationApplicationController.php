@@ -60,15 +60,15 @@ class OrganisationApplicationController extends Controller
         $application->load('user');
 
         $application->logo_url = $application->logo_path
-            ? url('/api/organisation-applications/logo/' . $application->id)
+            ? secure_url('/api/organisation-applications/logo/' . $application->id)
             : null;
 
         $application->certificate_url = $application->certificate_path
-            ? url('/api/organisation-applications/certificate/' . $application->id)
+            ? secure_url('/api/organisation-applications/certificate/' . $application->id)
             : null;
 
         $application->supporting_document_url = $application->supporting_document_path
-            ? url('/api/organisation-applications/supporting-document/' . $application->id)
+            ? secure_url('/api/organisation-applications/supporting-document/' . $application->id)
             : null;
 
         return response()->json([
@@ -87,15 +87,15 @@ class OrganisationApplicationController extends Controller
             ->get()
             ->map(function ($application) {
                 $application->logo_url = $application->logo_path
-                    ? url('/api/organisation-applications/logo/' . $application->id)
+                    ? secure_url('/api/organisation-applications/logo/' . $application->id)
                     : null;
 
                 $application->certificate_url = $application->certificate_path
-                    ? url('/api/organisation-applications/certificate/' . $application->id)
+                    ? secure_url('/api/organisation-applications/certificate/' . $application->id)
                     : null;
 
                 $application->supporting_document_url = $application->supporting_document_path
-                    ? url('/api/organisation-applications/supporting-document/' . $application->id)
+                    ? secure_url('/api/organisation-applications/supporting-document/' . $application->id)
                     : null;
 
                 $application->submitted_by_name = $application->user?->name;
@@ -117,15 +117,15 @@ class OrganisationApplicationController extends Controller
         $application = OrganisationApplication::with('user')->findOrFail($id);
 
         $application->logo_url = $application->logo_path
-            ? url('/api/organisation-applications/logo/' . $application->id)
+            ? secure_url('/api/organisation-applications/logo/' . $application->id)
             : null;
 
         $application->certificate_url = $application->certificate_path
-            ? url('/api/organisation-applications/certificate/' . $application->id)
+            ? secure_url('/api/organisation-applications/certificate/' . $application->id)
             : null;
 
         $application->supporting_document_url = $application->supporting_document_path
-            ? url('/api/organisation-applications/supporting-document/' . $application->id)
+            ? secure_url('/api/organisation-applications/supporting-document/' . $application->id)
             : null;
 
         $application->submitted_by_name = $application->user?->name;
@@ -151,15 +151,15 @@ class OrganisationApplicationController extends Controller
             }
 
             $application->logo_url = $application->logo_path
-                ? url('/api/organisation-applications/logo/' . $application->id)
+                ? secure_url('/api/organisation-applications/logo/' . $application->id)
                 : null;
 
             $application->certificate_url = $application->certificate_path
-                ? url('/api/organisation-applications/certificate/' . $application->id)
+                ? secure_url('/api/organisation-applications/certificate/' . $application->id)
                 : null;
 
             $application->supporting_document_url = $application->supporting_document_path
-                ? url('/api/organisation-applications/supporting-document/' . $application->id)
+                ? secure_url('/api/organisation-applications/supporting-document/' . $application->id)
                 : null;
 
             return response()->json([
@@ -353,15 +353,15 @@ class OrganisationApplicationController extends Controller
         }
 
         $application->logo_url = $application->logo_path
-            ? url('/api/organisation-applications/logo/' . $application->id)
+            ? secure_url('/api/organisation-applications/logo/' . $application->id)
             : null;
 
         $application->certificate_url = $application->certificate_path
-            ? url('/api/organisation-applications/certificate/' . $application->id)
+            ? secure_url('/api/organisation-applications/certificate/' . $application->id)
             : null;
 
         $application->supporting_document_url = $application->supporting_document_path
-            ? url('/api/organisation-applications/supporting-document/' . $application->id)
+            ? secure_url('/api/organisation-applications/supporting-document/' . $application->id)
             : null;
 
         return response()->json([
