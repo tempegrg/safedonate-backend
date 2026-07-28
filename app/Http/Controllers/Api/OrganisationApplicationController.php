@@ -30,6 +30,19 @@ class OrganisationApplicationController extends Controller
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
+        if (Organisation::where('registration_no', $request->registration_number)->exists()) {
+            return response()->json([
+                'message' => 'An organisation with this registration number is already registered and verified.'
+            ], 422);
+        }
+
+        if (OrganisationApplication::where('registration_number', $request->registration_number)
+            ->whereIn('status', ['pending', 'verified'])->exists()) {
+            return response()->json([
+                'message' => 'An application with this registration number is already pending or verified.'
+            ], 422);
+        }
+
   
         $logoPath = $request->file('logo')->store('logos', 'public');
         $certificatePath = $request->file('certificate')->store('certificates', 'public');
@@ -284,6 +297,20 @@ class OrganisationApplicationController extends Controller
             'certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
+
+        if (Organisation::where('registration_no', $request->registration_number)->exists()) {
+            return response()->json([
+                'message' => 'An organisation with this registration number is already registered and verified.'
+            ], 422);
+        }
+
+        if (OrganisationApplication::where('registration_number', $request->registration_number)
+            ->where('id', '!=', $id)
+            ->whereIn('status', ['pending', 'verified'])->exists()) {
+            return response()->json([
+                'message' => 'Another application with this registration number is already pending or verified.'
+            ], 422);
+        }
 
         // =========================================
         // REPLACE LOGO
