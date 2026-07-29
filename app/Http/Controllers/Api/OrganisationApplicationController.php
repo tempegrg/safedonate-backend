@@ -298,11 +298,14 @@ class OrganisationApplicationController extends Controller
             'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
         ]);
 
-        if (Organisation::where('registration_no', $request->registration_number)->exists()) {
+        $existingOrganisation = Organisation::where('registration_no', $request->registration_number)->first();
+        if ($existingOrganisation && ($application->status !== 'verified' || $application->registration_number !== $request->registration_number)) {
             return response()->json([
                 'message' => 'An organisation with this registration number is already registered and verified.'
             ], 422);
         }
+
+        $oldRegistrationNumber = $application->registration_number;
 
         if (OrganisationApplication::where('registration_number', $request->registration_number)
             ->where('id', '!=', $id)
@@ -363,9 +366,10 @@ class OrganisationApplicationController extends Controller
 
             Organisation::where(
                 'registration_no',
-                $application->registration_number
+                $oldRegistrationNumber
             )->update([
 
+                'registration_no' => $application->registration_number,
                 'name' => $application->organisation_name,
                 'website' => $application->website,
                 'category' => $application->organisation_type,
